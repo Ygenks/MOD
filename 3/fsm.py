@@ -30,6 +30,8 @@ channel_blocked = 0
 queue = 0
 system = 0
 
+processed = 0
+
 
 @click.command(help='Run Markov state machine')
 @click.argument('p', required=True, type=click.FLOAT, metavar='<source>')
@@ -49,17 +51,15 @@ def markov(p, pi1, pi2):
     for k, v in sorted(cnt.items()):
         print('{}: {}'.format(k, v / TICKS))
 
-    Pblocked = source_blocked / TICKS
-
     print('Pblocked: {}'.format(source_blocked / TICKS))
     print('Lqueue: {}'.format(queue / TICKS))
-    print('Wc: {}'.format(
-        (system / TICKS) / ((P) * (1 - Pblocked))))
+    # print('Wc: {}'.format((system / TICKS) / ((P) * (1 - Pblocked))))
+    print('Wc: {}'.format(system / processed))
 
 
 def fsm(P, PI1, PI2):
 
-    global state, source_blocked, channel_blocked, queue, system
+    global state, source_blocked, channel_blocked, queue, system, time, processed
 
     p = True if random.uniform(0.0, 1) > P else False
     pi1 = True if random.uniform(0.0, 1) > PI1 else False
@@ -70,6 +70,10 @@ def fsm(P, PI1, PI2):
     queue += state.queue
     system += state.queue + state.channel2
     system += state.channel1 if state.channel1 != 2 else 1
+
+
+    if state.channel2 == 1 and not pi2:
+        processed += 1
 
     if state == 'P0000':
         if p:

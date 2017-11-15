@@ -74,4 +74,5 @@ for pair in sorted(result.items(), key=str):
     print('{}: {}'.format(*pair))
 print('Pblocked: {}'.format(Pblock))
 print('Lqueue: {}'.format(Lqueue))
+print(Lc)
 print('Wc: {}'.format(Wc))
