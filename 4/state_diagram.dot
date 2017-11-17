@@ -1,0 +1,18 @@
+digraph {
+
+    rankdir=LR;
+    splines=true;
+    overlap=false;
+
+	0 -> 1[label="l"];
+    
+
+    1 -> 2[label="l"];
+    1 -> 0[label="3*mu"];
+
+    2 -> 3[label="l"];
+    2 -> 1[label="5*mu"];
+
+    3 -> 2[label="6*mu"];
+    
+}
