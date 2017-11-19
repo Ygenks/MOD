@@ -1,234 +1,164 @@
 #!/usr/bin/env python3
 
-import random
-import click
+import numpy as np
 from collections import Counter
 
 TICKS = 100000
 
+l = 25
+mu = 4
+
 
 class State:
-    def __init__(self, source, channel1, queue, channel2):
-        self.source = source
+    def __init__(self, channel1, channel2, channel3):
         self.channel1 = channel1
         self.channel2 = channel2
-        self.queue = queue
+        self.channel3 = channel3
 
     def __str__(self):
-        return 'P{}{}{}{}'.format(self.source, self.channel1, self.queue,
-                                  self.channel2)
+        return 'P{}{}{}'.format(self.channel1, self.channel2, self.channel3)
 
     def __eq__(self, other):
         return str(self) == other
 
 
-state = State(0, 0, 0, 0)
+state = State(0, 0, 0)
 cnt = Counter()
+total_time = 0
 
-source_blocked = 0
-channel_blocked = 0
-queue = 0
-system = 0
-
-processed = 0
+event_time = lambda t: np.random.exponential(1 / t)
 
 
-@click.command(help='Run Markov state machine')
-@click.argument('p', required=True, type=click.FLOAT, metavar='<source>')
-@click.argument(
-    'pi1', required=True, type=click.FLOAT, metavar='<first channel>')
-@click.argument(
-    'pi2', required=True, type=click.FLOAT, metavar='<second channel>')
-def markov(p, pi1, pi2):
+def transition(current_time):
 
-    P = 1 - p
-    PI1 = 1 - pi1
-    PI2 = 1 - pi2
+    global state, total_time
 
-    for _ in range(TICKS):
-        fsm(P, PI1, PI2)
+    channel1_time = event_time(3 * mu)
+    channel2_time = event_time(2 * mu)
+    channel3_time = event_time(mu)
+    channel23_time = event_time(3 * mu)
+    channel12_time = event_time(5 * mu)
+    channel13_time = event_time(4 * mu)
+    channel123_time = event_time(6 * mu)
 
-    for k, v in sorted(cnt.items()):
-        print('{}: {}'.format(k, v / TICKS))
+    prev_time = total_time
+    prev_state = state
 
-    print('Pblocked: {}'.format(source_blocked / TICKS))
-    print('Lqueue: {}'.format(queue / TICKS))
-    # print('Wc: {}'.format((system / TICKS) / ((P) * (1 - Pblocked))))
-    print('Wc: {}'.format(system / processed))
+    if state == 'P000':
+        state = State(1, 0, 0)
+        total_time += current_time
 
+    elif state == 'P100':
+        if channel1_time < current_time:
+            state = State(0, 0, 0)
+            total_time += channel1_time
+        else:
+            state = State(1, 1, 0)
+            total_time += current_time
+    elif state == 'P110':
+        if channel12_time < current_time:
+            state = State(0, 0, 0)
+            total_time += channel12_time
+        elif channel1_time < current_time:
+            state = State(1, 0, 0)
+            total_time += channel1_time
+        elif channel2_time < current_time:
+            state = State(0, 1, 0)
+            total_time += channel2_time
+        else:
+            state = State(1, 1, 1)
+            total_time += current_time
 
-def fsm(P, PI1, PI2):
+    elif state == 'P010':
 
-    global state, source_blocked, channel_blocked, queue, system, time, processed
+        if channel2_time < current_time:
+            state = State(0, 0, 0)
+            total_time += channel2_time
+        else:
+            state = State(1, 1, 0)
+            total_time += current_time
 
-    p = True if random.uniform(0.0, 1) > P else False
-    pi1 = True if random.uniform(0.0, 1) > PI1 else False
-    pi2 = True if random.uniform(0.0, 1) > PI2 else False
+    elif state == 'P111':
 
-    cnt[str(state)] += 1
+        if channel123_time < current_time:
+            state = State(0, 0, 0)
+            total_time += channel123_time
+        elif channel12_time < current_time:
+            state = State(0, 0, 1)
+            total_time += channel12_time
+        elif channel13_time < current_time:
+            state = State(0, 1, 0)
+            total_time += channel13_time
+        elif channel23_time < current_time:
+            state = State(1, 0, 0)
+            total_time += channel23_time
+        elif channel1_time < current_time:
+            state = State(0, 1, 1)
+            total_time += channel1_time
+        elif channel2_time < current_time:
+            state = State(1, 0, 1)
+            total_time += channel2_time
+        elif channel3_time < current_time:
+            state = State(1, 1, 0)
+            total_time += channel3_time
 
-    queue += state.queue
-    system += state.queue + state.channel2
-    system += state.channel1 if state.channel1 != 2 else 1
+    elif state == 'P101':
 
+        if channel13_time < current_time:
+            state = State(0, 0, 0)
+            total_time += channel13_time
+        elif channel1_time < current_time:
+            state = State(0, 0, 1)
+            total_time += channel1_time
+        elif channel3_time < current_time:
+            state = State(1, 0, 0)
+            total_time += channel3_time
+        else:
+            state = State(1, 1, 1)
+            total_time += current_time
 
-    if state.channel2 == 1 and not pi2:
-        processed += 1
+    elif state == 'P001':
 
-    if state == 'P0000':
-        if p:
-            state = State(0, 0, 0, 0)
-        elif not p:
-            state = State(0, 1, 0, 0)
+        if channel3_time < current_time:
+            state = State(0, 0, 0)
+            total_time += channel3_time
+        else:
+            state = State(1, 0, 1)
+            total_time += current_time
 
-    elif state == 'P0100':
-        if not p and not pi1:
-            state = State(0, 1, 0, 1)
-        elif p and not pi1:
-            state = State(0, 0, 0, 1)
-        elif p and pi1:
-            state = State(0, 1, 0, 0)
-        elif not p and pi1:
-            state = State(1, 1, 0, 0)
+    elif state == 'P011':
 
-    elif state == 'P1100':
-        # system += 1
-        source_blocked += 1
-        if pi1:
-            state = State(1, 1, 0, 0)
-        elif not pi1:
-            state = State(0, 1, 0, 1)
+        if channel23_time < current_time:
+            state = State(0, 0, 0)
+            total_time += channel23_time
+        elif channel2_time < current_time:
+            state = State(0, 0, 1)
+            total_time += channel2_time
+        elif channel3_time < current_time:
+            state = State(0, 1, 0)
+            total_time += channel3_time
+        else:
+            state = State(1, 1, 1)
+            total_time += current_time
 
-    elif state == 'P0001':
-        if p and not pi2:
-            state = State(0, 0, 0, 0)
-        elif p and pi2:
-            state = State(0, 0, 0, 1)
-        elif not p and not pi2:
-            state = State(0, 1, 0, 0)
-        elif not p and pi2:
-            state = State(0, 1, 0, 1)
-
-    elif state == 'P0101':
-        if p and pi1 and not pi2:
-            state = State(0, 1, 0, 0)
-        elif not p and not pi1 and pi2:
-            state = State(0, 1, 1, 1)
-        elif (p and pi1 and pi2) or (not p and not pi1 and not pi2):
-            state = State(0, 1, 0, 1)
-        elif p and not pi1 and not pi2:
-            state = State(0, 0, 0, 1)
-        elif p and not pi1 and pi2:
-            state = State(0, 0, 1, 1)
-        elif not p and pi1 and pi2:
-            state = State(1, 1, 0, 1)
-        elif not p and pi1 and not pi2:
-            state = State(1, 1, 0, 0)
-
-    elif state == 'P1101':
-        source_blocked += 1
-        if pi1 and not pi2:
-            state = State(1, 1, 0, 0)
-        elif pi1 and pi2:
-            state = State(1, 1, 0, 1)
-        elif not pi1 and not pi2:
-            state = State(0, 1, 0, 1)
-        elif not pi1 and pi2:
-            state = State(0, 1, 1, 1)
-
-    elif state == 'P0111':
-        if p and not pi1 and not pi2:
-            state = State(0, 0, 1, 1)
-        elif p and pi1 and not pi2:
-            state = State(0, 1, 0, 1)
-        elif not p and not pi1 and pi2:
-            state = State(0, 1, 2, 1)
-        elif (not p and not pi1 and not pi2) or (p and pi1 and pi2):
-            state = State(0, 1, 1, 1)
-        elif p and not pi1 and pi2:
-            state = State(0, 0, 2, 1)
-        elif not p and pi1 and pi2:
-            state = State(1, 1, 1, 1)
-        elif not p and pi1 and not pi2:
-            state = State(1, 1, 0, 1)
-
-    elif state == 'P1111':
-        source_blocked += 1
-        if not pi1 and pi2:
-            state = State(0, 1, 2, 1)
-        elif pi1 and not pi2:
-            state = State(1, 1, 0, 1)
-        elif not pi1 and not pi2:
-            state = State(0, 1, 1, 1)
-        elif pi1 and pi2:
-            state = State(1, 1, 1, 1)
-
-    elif state == 'P0011':
-        if p and pi2:
-            state = State(0, 0, 1, 1)
-        elif not p and pi2:
-            state = State(0, 1, 1, 1)
-        elif p and not pi2:
-            state = State(0, 0, 0, 1)
-        elif not p and not pi2:
-            state = State(0, 1, 0, 1)
-
-    elif state == 'P0121':
-        if p and pi1 and not pi2:
-            state = State(0, 1, 1, 1)
-        elif (p and pi1 and pi2) or (not p and not pi1 and not pi2):
-            state = State(0, 1, 2, 1)
-        elif p and not pi1 and not pi2:
-            state = State(0, 0, 2, 1)
-        elif p and not pi1 and pi2:
-            state = State(0, 2, 2, 1)
-        elif not p and pi1 and not pi2:
-            state = State(1, 1, 1, 1)
-        elif not p and pi1 and pi2:
-            state = State(1, 1, 2, 1)
-        elif not p and not pi1 and pi2:
-            state = State(1, 2, 2, 1)
-
-    elif state == 'P0221':
-        channel_blocked += 1
-        if not pi1 and not pi2:
-            state = State(0, 1, 2, 1)
-        elif p and pi2:
-            state = State(0, 2, 2, 1)
-        elif p and not pi2:
-            state = State(0, 0, 2, 1)
-        elif not p and pi2:
-            state = State(1, 2, 2, 1)
-
-    elif state == 'P1121':
-        source_blocked += 1
-        if pi1 and pi2:
-            state = State(1, 1, 2, 1)
-        elif not pi1 and pi2:
-            state = State(1, 2, 2, 1)
-        elif pi1 and not pi2:
-            state = State(1, 1, 1, 1)
-        elif not pi1 and not pi2:
-            state = State(0, 1, 2, 1)
-
-    elif state == 'P1221':
-        source_blocked += 1
-        channel_blocked += 1
-        if pi2:
-            state = State(1, 2, 2, 1)
-        elif not pi2:
-            state = State(0, 1, 2, 1)
-
-    elif state == 'P0021':
-        if p and pi2:
-            state = State(0, 0, 2, 1)
-        elif not p and pi2:
-            state = State(0, 1, 2, 1)
-        elif not p and not pi2:
-            state = State(0, 1, 1, 1)
-        elif p and not pi2:
-            state = State(0, 0, 1, 1)
+    cnt[str(prev_state)] += total_time - prev_time
 
 
-if __name__ == '__main__':
-    markov()
+for _ in range(TICKS):
+    current_time = event_time(l)
+    transition(current_time)
+
+Px = sum([v for k, v in cnt.items() if str(k)[1] == '1']) / total_time
+Py = sum([v for k, v in cnt.items() if str(k)[2] == '1']) / total_time
+Pz = sum([v for k, v in cnt.items() if str(k)[3] == '1']) / total_time
+
+Pdeny = cnt['P111'] / total_time
+A = l * (1 - Pdeny)
+
+for k, v in sorted(cnt.items(), key=str):
+    print('{}: {}'.format(k, v / total_time))
+
+print('Px: {}'.format(Px))
+print('Py: {}'.format(Py))
+print('Pz: {}'.format(Pz))
+print('A: {}'.format(A))
