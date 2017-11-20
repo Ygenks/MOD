@@ -36,10 +36,6 @@ def transition(current_time):
     channel1_time = event_time(3 * mu)
     channel2_time = event_time(2 * mu)
     channel3_time = event_time(mu)
-    channel23_time = event_time(3 * mu)
-    channel12_time = event_time(5 * mu)
-    channel13_time = event_time(4 * mu)
-    channel123_time = event_time(6 * mu)
 
     prev_time = total_time
     prev_state = state
@@ -47,7 +43,6 @@ def transition(current_time):
     if state == 'P000':
         state = State(1, 0, 0)
         total_time += current_time
-
     elif state == 'P100':
         if channel1_time < current_time:
             state = State(0, 0, 0)
@@ -56,10 +51,7 @@ def transition(current_time):
             state = State(1, 1, 0)
             total_time += current_time
     elif state == 'P110':
-        if channel12_time < current_time:
-            state = State(0, 0, 0)
-            total_time += channel12_time
-        elif channel1_time < current_time:
+        if channel1_time < current_time:
             state = State(0, 1, 0)
             total_time += channel1_time
         elif channel2_time < current_time:
@@ -68,46 +60,40 @@ def transition(current_time):
         else:
             state = State(1, 1, 1)
             total_time += current_time
-
     elif state == 'P010':
-
         if channel2_time < current_time:
             state = State(0, 0, 0)
             total_time += channel2_time
         else:
             state = State(1, 1, 0)
             total_time += current_time
-
     elif state == 'P111':
+        # if channel1_time < current_time:
+        #     state = State(0, 1, 1)
+        #     total_time += channel1_time
+        # elif channel2_time < current_time:
+        #     state = State(1, 0, 1)
+        #     total_time += channel2_time
+        # elif channel3_time < current_time:
+        #     state = State(1, 1, 0)
+        #     total_time += channel3_time
+        # else:
+        # total_time += current_time
 
-        if channel123_time < current_time:
-            state = State(0, 0, 0)
-            total_time += channel123_time
-        elif channel12_time < current_time:
-            state = State(0, 0, 1)
-            total_time += channel12_time
-        elif channel13_time < current_time:
-            state = State(0, 1, 0)
-            total_time += channel13_time
-        elif channel23_time < current_time:
-            state = State(1, 0, 0)
-            total_time += channel23_time
-        elif channel1_time < current_time:
-            state = State(0, 1, 1)
-            total_time += channel1_time
-        elif channel2_time < current_time:
-            state = State(1, 0, 1)
-            total_time += channel2_time
-        elif channel3_time < current_time:
-            state = State(1, 1, 0)
-            total_time += channel3_time
+
+        # WTF, but works
+        channels = [channel1_time, channel2_time, channel3_time]
+        worked_channel = channels.index(min(channels)) + 1
+
+        s = list(str(state))
+        s[worked_channel] = '0'
+        s = ''.join(s)
+
+        state = State(*s[1:])
+        total_time += channels[worked_channel - 1]
 
     elif state == 'P101':
-
-        if channel13_time < current_time:
-            state = State(0, 0, 0)
-            total_time += channel13_time
-        elif channel1_time < current_time:
+        if channel1_time < current_time:
             state = State(0, 0, 1)
             total_time += channel1_time
         elif channel3_time < current_time:
@@ -116,22 +102,15 @@ def transition(current_time):
         else:
             state = State(1, 1, 1)
             total_time += current_time
-
     elif state == 'P001':
-
         if channel3_time < current_time:
             state = State(0, 0, 0)
             total_time += channel3_time
         else:
             state = State(1, 0, 1)
             total_time += current_time
-
     elif state == 'P011':
-
-        if channel23_time < current_time:
-            state = State(0, 0, 0)
-            total_time += channel23_time
-        elif channel2_time < current_time:
+        if channel2_time < current_time:
             state = State(0, 0, 1)
             total_time += channel2_time
         elif channel3_time < current_time:
@@ -153,6 +132,7 @@ Py = sum([v for k, v in cnt.items() if str(k)[2] == '1']) / total_time
 Pz = sum([v for k, v in cnt.items() if str(k)[3] == '1']) / total_time
 
 Pdeny = cnt['P111'] / total_time
+
 A = l * (1 - Pdeny)
 
 for k, v in sorted(cnt.items(), key=str):

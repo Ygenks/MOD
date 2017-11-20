@@ -11,23 +11,17 @@ digraph {
 
 
     110 -> 111[label="l"];    
-    110 -> 000[label="5*mu"];
     110 -> 010[label="3*mu"];
     110 -> 100[label="2*mu"];
 
     010 -> 110[label="l"];
     010 -> 000[label="2*mu"];
 
-    111 -> 100[label="3*mu"];
     111 -> 011[label="3*mu"];
     111 -> 110[label="mu"];
-    111 -> 001[label="5*mu"];
-    111 -> 010[label="4*mu"];
     111 -> 101[label="2*mu"];
-    111 -> 000[label="6*mu"];
 
     101 -> 111[label="l"];
-    101 -> 000[label="4*mu"];
     101 -> 100[label="mu"];
     101 -> 001[label="3*mu"];
     
@@ -37,6 +31,5 @@ digraph {
     011 -> 111[label="l"];
     011 -> 010[label="mu"];
     011 -> 001[label="2*mu"];
-    011 -> 000[label="3*mu"];
 
 }
