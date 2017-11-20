@@ -60,10 +60,10 @@ def transition(current_time):
             state = State(0, 0, 0)
             total_time += channel12_time
         elif channel1_time < current_time:
-            state = State(1, 0, 0)
+            state = State(0, 1, 0)
             total_time += channel1_time
         elif channel2_time < current_time:
-            state = State(0, 1, 0)
+            state = State(1, 0, 0)
             total_time += channel2_time
         else:
             state = State(1, 1, 1)
